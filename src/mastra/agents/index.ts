@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
+import { Memory } from '@mastra/memory';
 import { searchProductsTool, getStoreInfoTool } from '../tools';
 
 export const shoppingAgent = new Agent({
@@ -19,6 +20,12 @@ export const shoppingAgent = new Agent({
       - When mentioning prices, always use the $ symbol
       - For product searches, show up to 5 relevant items by default
 
+      Working Memory Instructions:
+      - After each product search, update the "Last Search Results" section with the found products
+      - When answering follow-up questions about products, use the products stored in working memory instead of searching again
+      - Only perform a new search if the user asks about different products or explicitly requests a new search
+      - Keep track of what products the user has shown interest in under "User Interests"
+
       Remember to:
       - Proactively offer help if the user seems unsure
       - Mention relevant store policies when discussing products
@@ -30,4 +37,32 @@ export const shoppingAgent = new Agent({
     searchProductsTool, 
     getStoreInfoTool 
   },
+  memory: new Memory({  
+    options: {
+      workingMemory: {
+        enabled: true,
+        use: 'tool-call',
+        template: `
+          # Shopping Session
+
+          ## Last Search Results
+          - Query: 
+          - Products Found:
+            - [Product details will be listed here]
+          - Total Results: 
+
+          ## User Interests
+          - Viewed Products:
+            - [Product IDs and names will be listed here]
+          - Price Range Interest:
+          - Style Preferences:
+
+          ## Session State
+          - Current Context:
+          - Last Question:
+          - Open Questions:
+          `,
+      },
+    },
+  }),
 });
