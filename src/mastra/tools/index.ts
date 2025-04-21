@@ -1,4 +1,6 @@
 import { createTool } from '@mastra/core/tools';
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 import { products } from '../data/products';
 
@@ -20,19 +22,45 @@ export const searchProductsTool = createTool({
     totalResults: z.number()
   }),
   execute: async ({ context }) => {
-    // Map products directly from the imported data
-    const mappedProducts = products[0].allContentstackproducts.nodes.map((p: any) => ({
-      id: p.id,
-      title: p.title,
-      price: p.price,
-      image: p.product_image?.url,
-      description: ''
-    }));
+    try {
+      console.log('Searching with query:', context.query);
+      console.log('Products data:', products[0].allContentstackproducts.nodes.length, 'items');
 
-    return {
-      products: mappedProducts,
-      totalResults: mappedProducts.length
-    };
+      // Use OpenAI to search and transform products
+      const { object } = await generateObject({
+        model: openai('gpt-4'),
+        schema: z.object({
+          products: z.array(z.object({
+            id: z.string(),
+            title: z.string(),
+            price: z.number(),
+            image: z.string().optional(),
+            description: z.string().optional()
+          })),
+          totalResults: z.number()
+        }),
+        prompt: `Search Query: "${context.query}"\n\nAvailable Products:\n${JSON.stringify(products[0].allContentstackproducts.nodes, null, 2)}
+
+Instructions:
+1. Filter products based on the search query, considering titles, descriptions, and attributes
+2. Transform matching products to have these exact fields:
+   - id: string (use the original id)
+   - title: string (use the original title)
+   - price: number (use the original price)
+   - image: string (use product_image.url if available)
+   - description: string (use the original description)
+3. Return only relevant matches, limited to 5 most relevant items
+4. Include the total count of matches`
+      });
+
+      console.log('OpenAI response:', object);
+
+      return object;
+
+    } catch (error) {
+      console.error('Error in searchProductsTool:', error);
+      throw error;
+    }
   },
 });
 
