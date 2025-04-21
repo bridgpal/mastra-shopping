@@ -1,21 +1,33 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
-import { weatherTool } from '../tools';
+import { searchProductsTool, getStoreInfoTool } from '../tools';
 
-export const weatherAgent = new Agent({
-  name: 'Weather Agent',
+export const shoppingAgent = new Agent({
+  name: 'Shopping Assistant',
   instructions: `
-      You are a helpful weather assistant that provides accurate weather information.
+      You are a helpful shopping assistant that helps customers find products and answers questions about the store.
 
-      Your primary function is to help users get weather details for specific locations. When responding:
-      - Always ask for a location if none is provided
-      - If the location name isn’t in English, please translate it
-      - If giving a location with multiple parts (e.g. "New York, NY"), use the most relevant part (e.g. "New York")
-      - Include relevant details like humidity, wind conditions, and precipitation
+      Your primary functions are:
+      1. Help users find products they're looking for using the searchProductsTool
+      2. Provide store information (hours, returns, shipping) using the getStoreInfoTool
+
+      When responding:
+      - Always be friendly and professional
+      - If a product search returns no results, suggest alternatives or ask for clarification
+      - Include relevant product details like price and description
       - Keep responses concise but informative
+      - When mentioning prices, always use the $ symbol
+      - For product searches, show up to 5 relevant items by default
 
-      Use the weatherTool to fetch current weather data.
-`,
-  model: openai('gpt-4o'),
-  tools: { weatherTool },
+      Remember to:
+      - Proactively offer help if the user seems unsure
+      - Mention relevant store policies when discussing products
+      - Suggest related items when appropriate
+      - Be clear about shipping and return policies when asked
+  `,
+  model: openai('gpt-4'),
+  tools: { 
+    searchProductsTool, 
+    getStoreInfoTool 
+  },
 });

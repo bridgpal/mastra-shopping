@@ -1,102 +1,60 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { products } from '../data/products';
 
-interface GeocodingResponse {
-  results: {
-    latitude: number;
-    longitude: number;
-    name: string;
-  }[];
-}
-interface WeatherResponse {
-  current: {
-    time: string;
-    temperature_2m: number;
-    apparent_temperature: number;
-    relative_humidity_2m: number;
-    wind_speed_10m: number;
-    wind_gusts_10m: number;
-    weather_code: number;
-  };
-}
-
-export const weatherTool = createTool({
-  id: 'get-weather',
-  description: 'Get current weather for a location',
+// Search Products Tool
+export const searchProductsTool = createTool({
+  id: 'search-products',
+  description: 'Search through the product catalog based on query',
   inputSchema: z.object({
-    location: z.string().describe('City name'),
+    query: z.string().describe('Search query for products')
   }),
   outputSchema: z.object({
-    temperature: z.number(),
-    feelsLike: z.number(),
-    humidity: z.number(),
-    windSpeed: z.number(),
-    windGust: z.number(),
-    conditions: z.string(),
-    location: z.string(),
+    products: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      price: z.number(),
+      image: z.string().optional(),
+      description: z.string().optional()
+    })),
+    totalResults: z.number()
   }),
   execute: async ({ context }) => {
-    return await getWeather(context.location);
+    // Map products directly from the imported data
+    const mappedProducts = products[0].allContentstackproducts.nodes.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      price: p.price,
+      image: p.product_image?.url,
+      description: ''
+    }));
+
+    return {
+      products: mappedProducts,
+      totalResults: mappedProducts.length
+    };
   },
 });
 
-const getWeather = async (location: string) => {
-  const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`;
-  const geocodingResponse = await fetch(geocodingUrl);
-  const geocodingData = (await geocodingResponse.json()) as GeocodingResponse;
+// Store Information Tool
+export const getStoreInfoTool = createTool({
+  id: 'get-store-info',
+  description: 'Get information about store hours and policies',
+  inputSchema: z.object({
+    infoType: z.enum(['hours', 'returns', 'shipping']).describe('Type of information requested')
+  }),
+  outputSchema: z.object({
+    info: z.string()
+  }),
+  execute: async ({ context }) => {
+    const storeInfo = {
+      hours: 'Our store is open Monday-Friday 9am-8pm, Saturday 10am-6pm, and Sunday 11am-5pm EST.',
+      returns: 'We offer a 30-day return policy on all unused items in original packaging. Return shipping is free.',
+      shipping: 'Free standard shipping on orders over $50. Express shipping available for additional cost.'
+    };
 
-  if (!geocodingData.results?.[0]) {
-    throw new Error(`Location '${location}' not found`);
-  }
-
-  const { latitude, longitude, name } = geocodingData.results[0];
-
-  const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code`;
-
-  const response = await fetch(weatherUrl);
-  const data = (await response.json()) as WeatherResponse;
-
-  return {
-    temperature: data.current.temperature_2m,
-    feelsLike: data.current.apparent_temperature,
-    humidity: data.current.relative_humidity_2m,
-    windSpeed: data.current.wind_speed_10m,
-    windGust: data.current.wind_gusts_10m,
-    conditions: getWeatherCondition(data.current.weather_code),
-    location: name,
-  };
-};
-
-function getWeatherCondition(code: number): string {
-  const conditions: Record<number, string> = {
-    0: 'Clear sky',
-    1: 'Mainly clear',
-    2: 'Partly cloudy',
-    3: 'Overcast',
-    45: 'Foggy',
-    48: 'Depositing rime fog',
-    51: 'Light drizzle',
-    53: 'Moderate drizzle',
-    55: 'Dense drizzle',
-    56: 'Light freezing drizzle',
-    57: 'Dense freezing drizzle',
-    61: 'Slight rain',
-    63: 'Moderate rain',
-    65: 'Heavy rain',
-    66: 'Light freezing rain',
-    67: 'Heavy freezing rain',
-    71: 'Slight snow fall',
-    73: 'Moderate snow fall',
-    75: 'Heavy snow fall',
-    77: 'Snow grains',
-    80: 'Slight rain showers',
-    81: 'Moderate rain showers',
-    82: 'Violent rain showers',
-    85: 'Slight snow showers',
-    86: 'Heavy snow showers',
-    95: 'Thunderstorm',
-    96: 'Thunderstorm with slight hail',
-    99: 'Thunderstorm with heavy hail',
-  };
-  return conditions[code] || 'Unknown';
-}
+    return {
+      info: storeInfo[context.infoType]
+    };
+  },
+});
