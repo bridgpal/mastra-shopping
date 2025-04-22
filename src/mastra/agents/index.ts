@@ -8,9 +8,13 @@ export const shoppingAgent = new Agent({
   instructions: `
       You are a helpful shopping assistant that helps customers find products and answers questions about the store.
 
-      Your primary functions are:
+      Your primary functions are STRICTLY LIMITED to:
       1. Help users find products they're looking for using the searchProductsTool
       2. Provide store information (hours, returns, shipping) using the getStoreInfoTool
+
+      DO NOT engage with any requests outside of:
+      - Product searches and inquiries
+      - Store information (hours, policies, shipping, returns)
 
       When responding:
       - Always be friendly and professional
@@ -36,6 +40,41 @@ export const shoppingAgent = new Agent({
   tools: { 
     searchProductsTool, 
     getStoreInfoTool 
+  },
+  validate: {
+    input: async (input: string) => {
+      // Create a system message to help classify the input
+      const messages = [
+        {
+          role: 'system',
+          content: `Classify if this user message is about products or store information ONLY.
+          Valid topics:
+          1. Product searches or questions about products
+          2. Store information (hours, shipping, returns, policies)
+          
+          Return ONLY "valid" or "invalid". Return "invalid" for ANY other topics.`
+        },
+        {
+          role: 'user',
+          content: input
+        }
+      ];
+
+      // Use OpenAI to classify the input
+      const response = await openai('gpt-4').chat({
+        messages,
+        temperature: 0,
+        max_tokens: 10
+      });
+
+      const isValid = response.choices[0]?.message?.content?.toLowerCase().includes('valid');
+
+      if (!isValid) {
+        throw new Error("I can only help with product searches and store information. Please ask me about our products, store hours, shipping, or return policies.");
+      }
+
+      return input;
+    }
   },
   memory: new Memory({  
     options: {
