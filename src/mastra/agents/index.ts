@@ -36,7 +36,7 @@ export const shoppingAgent = new Agent({
       - Suggest related items when appropriate
       - Be clear about shipping and return policies when asked
   `,
-  model: openai('gpt-4'),
+  model: openai('gpt-4.1-nano'),
   tools: { 
     searchProductsTool, 
     getStoreInfoTool 
@@ -61,7 +61,7 @@ export const shoppingAgent = new Agent({
       ];
 
       // Use OpenAI to classify the input
-      const response = await openai('gpt-4').chat({
+      const response = await openai('gpt-4.1-nano').chat({
         messages,
         temperature: 0,
         max_tokens: 10
