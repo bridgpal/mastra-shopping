@@ -61,7 +61,7 @@ export const shoppingAgent = new Agent({
       ];
 
       // Use OpenAI to classify the input
-      const response = await openai('gpt-3.5-turbo').chat({
+      const response = await openai('gpt-4.1-nano').chat({
         messages,
         temperature: 0,
         max_tokens: 10
