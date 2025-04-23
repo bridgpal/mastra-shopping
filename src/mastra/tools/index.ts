@@ -3,6 +3,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { products } from '../data/products';
+import Fuse from 'fuse.js';
 
 // Search Products Tool
 export const searchProductsTool = createTool({
@@ -22,46 +23,30 @@ export const searchProductsTool = createTool({
     totalResults: z.number()
   }),
   execute: async ({ context }) => {
-    try {
-      console.log('Searching with query:', context.query);
-      console.log('Products data:', products[0].allContentstackproducts.nodes.length, 'items');
+    console.log("INPUT DATA", context);
+    const mappedProducts = products[0].allContentstackproducts.nodes.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      price: p.price,
+      image: p.product_image?.url,
+      description: ''
+    }));
 
-      // Use OpenAI to search and transform products
-      const { object } = await generateObject({
-        model: openai('gpt-4'),
-        schema: z.object({
-          products: z.array(z.object({
-            id: z.string(),
-            title: z.string(),
-            price: z.number(),
-            image: z.string().optional(),
-            description: z.string().optional()
-          })),
-          totalResults: z.number()
-        }),
-        prompt: `Search Query: "${context.query}"\n\nAvailable Products:\n${JSON.stringify(products[0].allContentstackproducts.nodes, null, 2)}
+    const fuse = new Fuse(mappedProducts, {
+      keys: ['title'],
+      threshold: 0.5,        // Lower threshold = stricter matching
+      minMatchCharLength: 2, // Require at least 2 characters to match
+    });
 
-Instructions:
-1. Filter products based on the search query, considering titles, descriptions, and attributes
-2. Transform matching products to have these exact fields:
-   - id: string (use the original id)
-   - title: string (use the original title)
-   - price: number (use the original price)
-   - image: string (use product_image.url if available)
-   - description: string (use the original description)
-3. Return only relevant matches, limited to 5 most relevant items
-4. Include the total count of matches`
-      });
+    const searchResults = context.query.trim() 
+      ? fuse.search(context.query).map(result => result.item)
+      : mappedProducts;
 
-      console.log('OpenAI response:', object);
-
-      return object;
-
-    } catch (error) {
-      console.error('Error in searchProductsTool:', error);
-      throw error;
-    }
-  },
+    return {
+      products: searchResults,
+      totalResults: searchResults.length
+    };
+  }
 });
 
 // Store Information Tool

@@ -23,6 +23,8 @@ export const shoppingAgent = new Agent({
       - Keep responses concise but informative
       - When mentioning prices, always use the $ symbol
       - For product searches, show up to 5 relevant items by default
+      - Images should be linked from the tiltle and not shown inline
+      - Always include nicely formatted markdown text in repsonses. Use bullets for multiple items and bolding. Include line breaks.
 
       Working Memory Instructions:
       - After each product search, update the "Last Search Results" section with the found products
@@ -36,7 +38,7 @@ export const shoppingAgent = new Agent({
       - Suggest related items when appropriate
       - Be clear about shipping and return policies when asked
   `,
-  model: openai('gpt-4'),
+  model: openai('gpt-3.5-turbo'),
   tools: { 
     searchProductsTool, 
     getStoreInfoTool 
