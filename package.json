@@ -17,9 +17,10 @@
     "@commercetools/sdk-client-v2": "^2.2.0",
     "@mastra/core": "^0.9.2",
     "@mastra/deployer-netlify": "^0.1.21",
+    "@mastra/mcp": "^0.4.2",
     "@mastra/memory": "^0.2.10",
     "dotenv": "^16.5.0",
-    "mastra": "^0.4.9",
+    "mastra": "^0.6.1",
     "winston": "^3.11.0",
     "zod": "^3.24.3"
   },
