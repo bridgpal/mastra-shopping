@@ -11,7 +11,7 @@ import {
   ProductVariant,
   Store
 } from '@commercetools/platform-sdk';
-import { IProductRepository, IProduct, SearchOptions, StoreInfo } from '../interfaces/IProductRepository';
+import { IProductRepository, IProduct, SearchOptions, StoreInfo, Category } from '../interfaces/IProductRepository';
 
 interface CommerceToolsConfig {
   projectKey: string;
@@ -171,6 +171,32 @@ export class CommerceToolsRepository implements IProductRepository {
         returns: 'We offer a 30-day return policy on all unused items in original packaging. Return shipping is free.',
         shipping: 'Free standard shipping on orders over $50. Express shipping available for additional cost.'
       };
+    }
+  }
+
+  async getCategories(): Promise<Category[]> {
+    try {
+      console.log("[SEARCH -> CATEGORIES]")
+      const response = await this.apiRoot
+        .withProjectKey({ projectKey: this.projectKey })
+        .categories()
+        .get()
+        .execute();
+
+      console.log("Categories:");
+      response.body.results.forEach(category => {
+        console.log(`CATEGORY --> ${category.name['en-US'] || category.name.en || 'Unknown'} --> ID --> ${category.id}`);
+      });
+
+      return response.body.results.map(category => ({
+        id: category.id,
+        name: category.name['en-US'] || category.name.en || 'Unknown',
+        description: category.description?.['en-US'] || category.description?.en,
+        parent: category.parent?.id
+      }));
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      throw error;
     }
   }
 } 
