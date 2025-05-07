@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { searchProductsTool, getStoreInfoTool } from '../tools';
+import { searchProductsTool, getStoreInfoTool, getCategoriesTool, getProductsByCategoryTool } from '../tools';
 
 export const shoppingAgent = new Agent({
   name: 'Shopping Assistant',
@@ -15,6 +15,8 @@ export const shoppingAgent = new Agent({
       DO NOT engage with any requests outside of:
       - Product searches and inquiries
       - Store information (hours, policies, shipping, returns)
+      - Categories
+      - Products by category
 
       When responding:
       - Always be friendly and professional
@@ -30,6 +32,7 @@ export const shoppingAgent = new Agent({
       - When answering follow-up questions about products, use the products stored in working memory instead of searching again
       - Only perform a new search if the user asks about different products or explicitly requests a new search
       - Keep track of what products the user has shown interest in under "User Interests"
+      - After each time you use getCategoriesTool, save the categories in memory.
 
       Remember to:
       - Proactively offer help if the user seems unsure
@@ -40,42 +43,9 @@ export const shoppingAgent = new Agent({
   model: openai('gpt-4.1-nano'),
   tools: { 
     searchProductsTool, 
-    getStoreInfoTool 
-  },
-  validate: {
-    input: async (input: string) => {
-      // Create a system message to help classify the input
-      const messages = [
-        {
-          role: 'system',
-          content: `Classify if this user message is about products or store information ONLY.
-          Valid topics:
-          1. Product searches or questions about products
-          2. Store information (hours, shipping, returns, policies)
-          
-          Return ONLY "valid" or "invalid". Return "invalid" for ANY other topics.`
-        },
-        {
-          role: 'user',
-          content: input
-        }
-      ];
-
-      // Use OpenAI to classify the input
-      const response = await openai('gpt-4.1-nano').chat({
-        messages,
-        temperature: 0,
-        max_tokens: 10
-      });
-
-      const isValid = response.choices[0]?.message?.content?.toLowerCase().includes('valid');
-
-      if (!isValid) {
-        throw new Error("I can only help with product searches and store information. Please ask me about our products, store hours, shipping, or return policies.");
-      }
-
-      return input;
-    }
+    getStoreInfoTool,
+    getCategoriesTool,
+    getProductsByCategoryTool
   },
   memory: new Memory({  
     options: {
@@ -90,6 +60,10 @@ export const shoppingAgent = new Agent({
           - Products Found:
             - [Product details will be listed here]
           - Total Results: 
+
+
+          ## Categories
+          - [List of Available Categories]
 
           ## User Interests
           - Viewed Products:

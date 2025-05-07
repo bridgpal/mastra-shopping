@@ -39,9 +39,17 @@ export interface StoreInfo {
   email?: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  parent?: string;
+}
+
 export interface IProductRepository {
   searchProducts(query: string, options?: SearchOptions): Promise<IProduct[]>;
   getProductById(id: string): Promise<IProduct>;
   getProductsByCategory(category: string): Promise<IProduct[]>;
   getStoreInfo(): Promise<StoreInfo>;
+  getCategories(): Promise<Category[]>;
 } 

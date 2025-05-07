@@ -84,3 +84,86 @@ export const getStoreInfoTool = createTool({
     }
   },
 });
+
+export const getProductsByCategoryTool = createTool({
+  id: 'get-products-by-category',
+  description: 'Get products by category id',
+  inputSchema: z.object({
+    categoryId: z.string().describe('ID of the category')
+  }),
+  outputSchema: z.object({
+    products: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      price: z.number(),
+      image: z.string(),
+      description: z.string().optional()
+    })),
+    totalResults: z.number(),
+    categoryIdUsed: z.string()
+  }),
+  execute: async ({ context }) => {
+    try {
+      logInfo('Fetching products by category', { categoryId: context.categoryId });
+
+      const { productRepository } = configureServices();
+      const products = await productRepository.getProductsByCategory(context.categoryId);
+      
+      logInfo('Products by category retrieved', { count: products.length });
+
+      return {
+        products: products.map(p => ({
+          id: p.id,
+          title: p.title,
+          price: p.price.amount,
+          image: p.image,
+          description: p.description
+        })),
+        totalResults: products.length,
+        categoryIdUsed: context.categoryId,
+      };
+
+    } catch (error) {
+      logError(error as Error, { context });
+      throw error;
+    }
+  },
+});
+
+
+// Categories Tool
+export const getCategoriesTool = createTool({
+  id: 'get-categories',
+  description: 'Get available product categories',
+  inputSchema: z.object({}),
+  outputSchema: z.object({
+    categories: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().optional(),
+      parent: z.string().optional()
+    }))
+  }),
+  execute: async () => {
+    try {
+      logInfo('Fetching categories');
+
+      const { productRepository } = configureServices();
+      const categories = await productRepository.getCategories();
+      
+      logInfo('Categories retrieved', { count: categories.length });
+
+      return {
+        categories: categories.map(c => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          parent: c.parent
+        }))
+      };
+    } catch (error) {
+      logError(error as Error);
+      throw error;
+    }
+  },
+});
