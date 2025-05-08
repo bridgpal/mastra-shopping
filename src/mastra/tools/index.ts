@@ -207,3 +207,31 @@ export const createCategoryTool = createTool({
     }
   },
 });
+
+export const addProductToCategoryTool = createTool({
+  id: 'add-product-to-category',
+  description: 'Add a product to a category',
+  inputSchema: z.object({
+    categoryId: z.string().describe('ID of the category'),
+    productId: z.string().describe('ID of the product')
+  }),
+  outputSchema: z.object({
+    categoryId: z.string(),
+    productId: z.string()
+  }),
+  execute: async ({context}) => {
+    try {
+      logInfo('Adding product to category', { context });
+      const { productRepository } = configureServices();
+      await productRepository.addProductToCategory(context.categoryId, context.productId);
+      logInfo('Product added to category', { categoryId: context.categoryId, productId: context.productId });
+      return {
+        categoryId: context.categoryId,
+        productId: context.productId
+      };
+    } catch (error) {
+      logError(error as Error);
+      throw error;
+    }
+  },
+});

@@ -243,4 +243,40 @@ export class CommerceToolsRepository implements IProductRepository {
       throw error;
     }
   }
+
+  async addProductToCategory(categoryId: string, productId: string): Promise<void> {
+    try {
+      // Fetch the product to get its current version
+      const productResponse = await this.apiRoot
+        .withProjectKey({ projectKey: this.projectKey })
+        .products()
+        .withId({ ID: productId })
+        .get()
+        .execute();
+
+      const product = productResponse.body;
+      const version = product.version;
+
+      // Update the product to add the category
+      await this.apiRoot
+        .withProjectKey({ projectKey: this.projectKey })
+        .products()
+        .withId({ ID: productId })
+        .post({
+          body: {
+            version,
+            actions: [
+              {
+                action: "addToCategory",
+                category: { id: categoryId }
+              }
+            ]
+          }
+        })
+        .execute();
+    } catch (error) {
+      console.error('Error adding product to category:', error);
+      throw error;
+    }
+  }
 } 

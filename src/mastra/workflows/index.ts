@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
-import { searchProductsTool, getStoreInfoTool, getCategoriesTool, getProductsByCategoryTool, createCategoryTool } from '../tools';
+import { searchProductsTool, getStoreInfoTool, getCategoriesTool, getProductsByCategoryTool, createCategoryTool, addProductToCategoryTool } from '../tools';
 
 export const merchantAssistant = new Agent({
     name: 'Merchant Assistant',
@@ -54,7 +54,8 @@ export const merchantAssistant = new Agent({
         getStoreInfoTool,
         getCategoriesTool,
         getProductsByCategoryTool,
-        createCategoryTool
+        createCategoryTool,
+        addProductToCategoryTool
     },
     memory: new Memory({
         options: {
