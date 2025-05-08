@@ -4,7 +4,8 @@ import {
   type HttpMiddlewareOptions,
   type Client
 } from '@commercetools/sdk-client-v2';
-import { 
+
+import {
   createApiBuilderFromCtpClient,
   ApiRoot,
   Product,
@@ -12,6 +13,7 @@ import {
   Store,
   ProductProjection
 } from '@commercetools/platform-sdk';
+
 import { IProductRepository, IProduct, SearchOptions, StoreInfo, Category } from '../interfaces/IProductRepository';
 
 interface CommerceToolsConfig {
@@ -56,9 +58,9 @@ export class CommerceToolsRepository implements IProductRepository {
     this.apiRoot = createApiBuilderFromCtpClient(this.client);
   }
 
-  private mapToProduct(product: any): IProduct {    
+  private mapToProduct(product: any): IProduct {
     const masterVariant = product.masterVariant;
-    
+
     if (!masterVariant) {
       throw new Error('No master variant found in product');
     }
@@ -68,8 +70,8 @@ export class CommerceToolsRepository implements IProductRepository {
       title: product.name?.['en-US'] || product.name?.en || 'No title available',
       description: product.description?.['en-US'] || product.description?.en || '',
       price: {
-        amount: masterVariant.prices?.[0]?.value?.centAmount 
-          ? masterVariant.prices[0].value.centAmount / 100 
+        amount: masterVariant.prices?.[0]?.value?.centAmount
+          ? masterVariant.prices[0].value.centAmount / 100
           : 0,
         currencyCode: masterVariant.prices?.[0]?.value?.currencyCode || 'USD'
       },
@@ -78,8 +80,8 @@ export class CommerceToolsRepository implements IProductRepository {
         id: String(variant.id),
         sku: variant.sku || '',
         price: {
-          amount: variant.prices?.[0]?.value?.centAmount 
-            ? variant.prices[0].value.centAmount / 100 
+          amount: variant.prices?.[0]?.value?.centAmount
+            ? variant.prices[0].value.centAmount / 100
             : 0,
           currencyCode: variant.prices?.[0]?.value?.currencyCode || 'USD'
         },
@@ -90,7 +92,7 @@ export class CommerceToolsRepository implements IProductRepository {
 
   async searchProducts(query: string, options?: SearchOptions): Promise<IProduct[]> {
     try {
-      
+
       const response = await this.apiRoot
         .withProjectKey({ projectKey: this.projectKey })
         .productProjections()
@@ -111,7 +113,7 @@ export class CommerceToolsRepository implements IProductRepository {
           }
         })
         .execute();
-      
+
 
       return response.body.results.map(this.mapToProduct);
     } catch (error) {
@@ -127,7 +129,7 @@ export class CommerceToolsRepository implements IProductRepository {
       .withId({ ID: id })
       .get()
       .execute();
-    
+
     return this.mapToProduct(response.body);
   }
 
@@ -142,7 +144,7 @@ export class CommerceToolsRepository implements IProductRepository {
         }
       })
       .execute();
-    
+
     return response.body.results.map(this.mapToProduct);
   }
 
@@ -202,6 +204,42 @@ export class CommerceToolsRepository implements IProductRepository {
       }));
     } catch (error) {
       console.error('Error fetching categories:', error);
+      throw error;
+    }
+  }
+
+  async createCategory(category: Category): Promise<Category> {
+    try {
+      const body: any = {
+        name: category.name, // e.g., { en: "Hats" }
+        slug: category.slug, // e.g., { en: "hats" } (must be unique)
+      };
+      // Log the payload as JSON for debugging
+      console.log("[CREATE CATEGORY PAYLOAD]", JSON.stringify(body, null, 2));
+
+      console.log("[CREATE CATEGORY]")
+
+      // if (category.parent) {
+      //   body.parent = {
+      //     typeId: "category",
+      //     id: category.parent.id
+      //   };
+      // }
+
+      if (category.orderHint) {
+        body.orderHint = category.orderHint;
+      }
+
+      console.log(body)
+
+      const response = await this.apiRoot
+        .withProjectKey({ projectKey: this.projectKey })
+        .categories()
+        .post({ body })
+        .execute();
+      return response.body;
+    } catch (error) {
+      console.error('Error creating category:', error);
       throw error;
     }
   }

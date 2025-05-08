@@ -167,3 +167,43 @@ export const getCategoriesTool = createTool({
     }
   },
 });
+
+export const createCategoryTool = createTool({
+  id: 'create-category',
+  description: 'Create a new product category',
+  inputSchema: z.object({
+    name: z.record(z.string()), // { en: 'Hats' }
+    slug: z.record(z.string()), // { en: 'hats' }
+    parent: z.object({ id: z.string().optional() }).optional(),
+    orderHint: z.string().optional(),
+  }),
+  outputSchema: z.object({
+    category: z.object({
+      id: z.string(),
+      name: z.record(z.string()),
+      slug: z.record(z.string()),
+      parent: z.object({ id: z.string().optional() }).optional(),
+      orderHint: z.string().optional(),
+    })
+  }),
+  execute: async ({context}) => {
+    try {
+      logInfo('Creating category', { context });
+      const { productRepository } = configureServices();
+      const category = await productRepository.createCategory(context);
+      logInfo('Category created', { id: category.id });
+      return {
+        category: {
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          parent: category.parent,
+          orderHint: category.orderHint,
+        }
+      };
+    } catch (error) {
+      logError(error as Error);
+      throw error;
+    }
+  },
+});
