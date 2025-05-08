@@ -12,7 +12,7 @@ export const mastra = new Mastra({
     level: 'info',
   }),
   storage: new LibSQLStore({
-    url: 'file:../tmp/mastra.db',
+    url: 'file:../mastra.db',
   }),
   deployer: new NetlifyDeployer({
     scope: 'your-team-slug',

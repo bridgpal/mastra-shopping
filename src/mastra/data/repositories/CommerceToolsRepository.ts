@@ -9,7 +9,8 @@ import {
   ApiRoot,
   Product,
   ProductVariant,
-  Store
+  Store,
+  ProductProjection
 } from '@commercetools/platform-sdk';
 import { IProductRepository, IProduct, SearchOptions, StoreInfo, Category } from '../interfaces/IProductRepository';
 
@@ -55,22 +56,25 @@ export class CommerceToolsRepository implements IProductRepository {
     this.apiRoot = createApiBuilderFromCtpClient(this.client);
   }
 
-  private mapToProduct(ctProduct: Product): IProduct {    
-    const currentData = ctProduct.masterData?.current;
-    const masterVariant = currentData?.masterVariant;
+  private mapToProduct(product: any): IProduct {    
+    const masterVariant = product.masterVariant;
     
+    if (!masterVariant) {
+      throw new Error('No master variant found in product');
+    }
+
     return {
-      id: ctProduct.id,
-      title: currentData?.name?.['en-US'] || currentData?.name?.en || 'No title available',
-      description: currentData?.description?.en || '',
+      id: product.id,
+      title: product.name?.['en-US'] || product.name?.en || 'No title available',
+      description: product.description?.['en-US'] || product.description?.en || '',
       price: {
-        amount: masterVariant?.prices?.[0]?.value?.centAmount 
+        amount: masterVariant.prices?.[0]?.value?.centAmount 
           ? masterVariant.prices[0].value.centAmount / 100 
           : 0,
-        currencyCode: masterVariant?.prices?.[0]?.value?.currencyCode || 'USD'
+        currencyCode: masterVariant.prices?.[0]?.value?.currencyCode || 'USD'
       },
-      image: masterVariant?.images?.[0]?.url || '',
-      variants: currentData?.variants?.map((variant: ProductVariant) => ({
+      image: masterVariant.images?.[0]?.url || '',
+      variants: product.variants?.map((variant: ProductVariant) => ({
         id: String(variant.id),
         sku: variant.sku || '',
         price: {
@@ -89,12 +93,14 @@ export class CommerceToolsRepository implements IProductRepository {
       
       const response = await this.apiRoot
         .withProjectKey({ projectKey: this.projectKey })
-        .products()
+        .productProjections()
+        .search()
         .get({
           queryArgs: {
-            'text.en': query,
-            limit: options?.limit || 20,
+            'text.en-US': query,
+            limit: options?.limit || 6,
             offset: options?.offset || 0,
+            staged: true,
             ...(options?.category && { 'categories.id': options.category }),
             ...(options?.priceRange && {
               'variants.prices.value.centAmount:range': [

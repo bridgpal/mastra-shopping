@@ -25,7 +25,8 @@ export const shoppingAgent = new Agent({
       - Keep responses concise but informative
       - When mentioning prices, always use the $ symbol
       - For product searches, show up to 5 relevant items by default
-      - Don't show images in the markdown response.
+      - Always show products in bulleted list.
+      - Use Markdown to hyperlink the product image on the product description.
 
       Working Memory Instructions:
       - After each product search, update the "Last Search Results" section with the found products
@@ -44,8 +45,7 @@ export const shoppingAgent = new Agent({
   tools: { 
     searchProductsTool, 
     getStoreInfoTool,
-    getCategoriesTool,
-    getProductsByCategoryTool
+    getCategoriesTool
   },
   memory: new Memory({  
     options: {

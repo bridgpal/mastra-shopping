@@ -33,10 +33,10 @@ export const searchProductsTool = createTool({
       const products = await productRepository.searchProducts(context.query, {
         category: context.category,
         priceRange: context.priceRange,
-        limit: 20
+        limit: 6
       });
       
-      logInfo('Products found', { count: products.length });
+      logInfo('Products found', { count: products });
 
       return {
         products: products.map(p => ({
