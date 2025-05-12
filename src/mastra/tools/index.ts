@@ -33,10 +33,10 @@ export const searchProductsTool = createTool({
       const products = await productRepository.searchProducts(context.query, {
         category: context.category,
         priceRange: context.priceRange,
-        limit: 20
+        limit: 6
       });
       
-      logInfo('Products found', { count: products.length });
+      logInfo('Products found', { count: products });
 
       return {
         products: products.map(p => ({
@@ -160,6 +160,74 @@ export const getCategoriesTool = createTool({
           description: c.description,
           parent: c.parent
         }))
+      };
+    } catch (error) {
+      logError(error as Error);
+      throw error;
+    }
+  },
+});
+
+export const createCategoryTool = createTool({
+  id: 'create-category',
+  description: 'Create a new product category',
+  inputSchema: z.object({
+    name: z.record(z.string()), // { en: 'Hats' }
+    slug: z.record(z.string()), // { en: 'hats' }
+    parent: z.object({ id: z.string().optional() }).optional(),
+    orderHint: z.string().optional(),
+  }),
+  outputSchema: z.object({
+    category: z.object({
+      id: z.string(),
+      name: z.record(z.string()),
+      slug: z.record(z.string()),
+      parent: z.object({ id: z.string().optional() }).optional(),
+      orderHint: z.string().optional(),
+    })
+  }),
+  execute: async ({context}) => {
+    try {
+      logInfo('Creating category', { context });
+      const { productRepository } = configureServices();
+      const category = await productRepository.createCategory(context);
+      logInfo('Category created', { id: category.id });
+      return {
+        category: {
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          parent: category.parent,
+          orderHint: category.orderHint,
+        }
+      };
+    } catch (error) {
+      logError(error as Error);
+      throw error;
+    }
+  },
+});
+
+export const addProductToCategoryTool = createTool({
+  id: 'add-product-to-category',
+  description: 'Add a product to a category',
+  inputSchema: z.object({
+    categoryId: z.string().describe('ID of the category'),
+    productId: z.string().describe('ID of the product')
+  }),
+  outputSchema: z.object({
+    categoryId: z.string(),
+    productId: z.string()
+  }),
+  execute: async ({context}) => {
+    try {
+      logInfo('Adding product to category', { context });
+      const { productRepository } = configureServices();
+      await productRepository.addProductToCategory(context.categoryId, context.productId);
+      logInfo('Product added to category', { categoryId: context.categoryId, productId: context.productId });
+      return {
+        categoryId: context.categoryId,
+        productId: context.productId
       };
     } catch (error) {
       logError(error as Error);

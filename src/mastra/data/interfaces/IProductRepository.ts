@@ -8,6 +8,7 @@ export interface IProduct {
   };
   image: string;
   variants?: ProductVariant[];
+  categories?: Category[];
 }
 
 export interface ProductVariant {
@@ -41,9 +42,10 @@ export interface StoreInfo {
 
 export interface Category {
   id: string;
-  name: string;
-  description?: string;
-  parent?: string;
+  name: { [lang: string]: string }; // e.g., { en: "Hats" }
+  slug?: { [lang: string]: string }; // e.g., { en: "hats" }
+  parent?: { id: string };
+  orderHint?: string;
 }
 
 export interface IProductRepository {
@@ -52,4 +54,6 @@ export interface IProductRepository {
   getProductsByCategory(category: string): Promise<IProduct[]>;
   getStoreInfo(): Promise<StoreInfo>;
   getCategories(): Promise<Category[]>;
+  createCategory(category: Category): Promise<Category>;
+  addProductToCategory(categoryId: string, productId: string): Promise<void>;
 } 
