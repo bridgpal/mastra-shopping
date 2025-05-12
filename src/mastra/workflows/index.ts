@@ -1,6 +1,21 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
+
+/**
+ * Ensures the input for createCategoryTool has name and slug as localized objects.
+ * Usage: const safeInput = ensureLocalizedCategoryInput(input);
+ *        await createCategoryTool.execute({ context, input: safeInput });
+ */
+export function ensureLocalizedCategoryInput(input: any) {
+  const wrapIfString = (val: any) => typeof val === 'string' ? { en: val } : val;
+  return {
+    ...input,
+    name: wrapIfString(input.name),
+    slug: wrapIfString(input.slug)
+  };
+}
+
 import { searchProductsTool, getStoreInfoTool, getCategoriesTool, getProductsByCategoryTool, createCategoryTool, addProductToCategoryTool } from '../tools';
 
 export const merchantAssistant = new Agent({
@@ -15,6 +30,7 @@ export const merchantAssistant = new Agent({
 
       Product Search & Information
       Use the searchProductsTool to help users find products based on their queries.
+      Use the getProductsByCategoryTool to help users find products based on their queries.
       
       Store Information
       Use the getStoreInfoTool to answer questions about:
@@ -45,8 +61,15 @@ export const merchantAssistant = new Agent({
 
       Proactive Assistance:
       - Offer help if the user seems unsure
+      - Offer helpful responses instead of system errors like JSON data or error messages
       - Suggest related items when relevant
       - Mention store policies when discussing related topics (returns, shipping, etc.)
+      - Use the current language to infer the locale of the user's input
+
+      Product Management:
+      - Use addProductToCategoryTool to add products to categories
+      - Use addProductToCategoryTool to add a product to a specific category
+      - Use createCategoryTool to create new categories
   `,
     model: openai('gpt-4.1-nano'),
     tools: {

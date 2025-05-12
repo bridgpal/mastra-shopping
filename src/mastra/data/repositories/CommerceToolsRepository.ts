@@ -134,18 +134,31 @@ export class CommerceToolsRepository implements IProductRepository {
   }
 
   async getProductsByCategory(category: string): Promise<IProduct[]> {
+    console.log("[GET PRODUCTS BY CATEGORY]")
     const response = await this.apiRoot
       .withProjectKey({ projectKey: this.projectKey })
       .products()
       .get({
         queryArgs: {
-          'categories.id': category,
+          where: `masterData(current(categories(id="${category}")))`,
           limit: 20
         }
       })
       .execute();
 
-    return response.body.results.map(this.mapToProduct);
+      console.log('Response:', response.body);
+
+    return response.body.results
+      .map(product => {
+        try {
+          console.log('Product:', product.masterData);
+          return this.mapToProduct(product.masterData.current);
+        } catch (e) {
+          console.warn('Skipping product with missing master variant:', product.id);
+          return null;
+        }
+      })
+      .filter((p): p is IProduct => Boolean(p));
   }
 
   async getStoreInfo(): Promise<StoreInfo> {
@@ -188,7 +201,11 @@ export class CommerceToolsRepository implements IProductRepository {
       const response = await this.apiRoot
         .withProjectKey({ projectKey: this.projectKey })
         .categories()
-        .get()
+        .get({
+          queryArgs: {
+            limit: 50,
+          }
+        })
         .execute();
 
       console.log("Categories:");
@@ -210,9 +227,17 @@ export class CommerceToolsRepository implements IProductRepository {
 
   async createCategory(category: Category): Promise<Category> {
     try {
+      if (!category.name) {
+        throw new Error("Category 'name' must be provided as an object, e.g. { en: 'Hats' }");
+      }
+
+      if (!category.slug) {
+        throw new Error("Category 'slug' must be provided as an object, e.g. { en: 'hats' }");
+      }
+
       const body: any = {
-        name: category.name, // e.g., { en: "Hats" }
-        slug: category.slug, // e.g., { en: "hats" } (must be unique)
+        name: { "en-US": category.name }, // e.g., { en: "Hats" }
+        slug: { "en-US": category.slug }, // e.g., { en: "hats" } (must be unique)
       };
       // Log the payload as JSON for debugging
       console.log("[CREATE CATEGORY PAYLOAD]", JSON.stringify(body, null, 2));
@@ -245,19 +270,8 @@ export class CommerceToolsRepository implements IProductRepository {
   }
 
   async addProductToCategory(categoryId: string, productId: string): Promise<void> {
-    try {
-      // Fetch the product to get its current version
-      const productResponse = await this.apiRoot
-        .withProjectKey({ projectKey: this.projectKey })
-        .products()
-        .withId({ ID: productId })
-        .get()
-        .execute();
-
-      const product = productResponse.body;
-      const version = product.version;
-
-      // Update the product to add the category
+    // Helper to perform the update
+    const updateProduct = async (version: number) => {
       await this.apiRoot
         .withProjectKey({ projectKey: this.projectKey })
         .products()
@@ -268,13 +282,59 @@ export class CommerceToolsRepository implements IProductRepository {
             actions: [
               {
                 action: "addToCategory",
-                category: { id: categoryId }
+                category: { id: categoryId, typeId: "category" }
               }
             ]
           }
         })
         .execute();
-    } catch (error) {
+    };
+
+    // Fetch latest product version
+    let productResponse = await this.apiRoot
+      .withProjectKey({ projectKey: this.projectKey })
+      .products()
+      .withId({ ID: productId })
+      .get()
+      .execute();
+    let product = productResponse.body;
+    let version = product.version;
+
+    try {
+      await updateProduct(version);
+    } catch (error: any) {
+      const message = error?.body?.message || error?.message || '';
+      // Handle already-in-category gracefully
+      if (
+        message.includes('is already in that category') ||
+        (error?.statusCode === 400 && message.includes('Cannot add to category'))
+      ) {
+        console.warn(`Product ${productId} is already in category ${categoryId}, skipping.`);
+        return;
+      }
+      // Handle version conflict (ConcurrentModification)
+      if (
+        error?.statusCode === 409 &&
+        message.includes('has a different version than expected') &&
+        error?.body?.errors?.some((e: any) => e.code === 'ConcurrentModification')
+      ) {
+        // Refetch and retry once
+        productResponse = await this.apiRoot
+          .withProjectKey({ projectKey: this.projectKey })
+          .products()
+          .withId({ ID: productId })
+          .get()
+          .execute();
+        product = productResponse.body;
+        version = product.version;
+        try {
+          await updateProduct(version);
+        } catch (retryError: any) {
+          console.error('Retry failed adding product to category:', retryError);
+          throw retryError;
+        }
+        return;
+      }
       console.error('Error adding product to category:', error);
       throw error;
     }

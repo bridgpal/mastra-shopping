@@ -168,20 +168,26 @@ export const getCategoriesTool = createTool({
   },
 });
 
+// inputSchema: z.object({
+//   name: z.record(z.string()), // { en: 'Hats' }
+//   slug: z.record(z.string()), // { en: 'hats' }
+//   parent: z.object({ id: z.string().optional() }).optional(),
+//   orderHint: z.string().optional(),
+// }),
 export const createCategoryTool = createTool({
   id: 'create-category',
   description: 'Create a new product category',
   inputSchema: z.object({
-    name: z.record(z.string()), // { en: 'Hats' }
-    slug: z.record(z.string()), // { en: 'hats' }
-    parent: z.object({ id: z.string().optional() }).optional(),
-    orderHint: z.string().optional(),
+    name: z.string(), // { en: 'Hats' }
+    slug: z.string(), // { en: 'hats' }
+    // parent: z.object({ id: z.string().optional() }).optional(),
+    // orderHint: z.string().optional(),
   }),
   outputSchema: z.object({
     category: z.object({
       id: z.string(),
-      name: z.record(z.string()),
-      slug: z.record(z.string()),
+      name: z.string(),
+      slug: z.string(),
       parent: z.object({ id: z.string().optional() }).optional(),
       orderHint: z.string().optional(),
     })
