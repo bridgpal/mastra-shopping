@@ -2,7 +2,8 @@ import {
   ClientBuilder,
   type AuthMiddlewareOptions,
   type HttpMiddlewareOptions,
-  type Client
+  type Client,
+  ClientResponse
 } from '@commercetools/sdk-client-v2';
 
 import {
@@ -146,7 +147,7 @@ export class CommerceToolsRepository implements IProductRepository {
       })
       .execute();
 
-      console.log('Response:', response.body);
+    console.log('Response:', response.body);
 
     return response.body.results
       .map(product => {
@@ -339,4 +340,59 @@ export class CommerceToolsRepository implements IProductRepository {
       throw error;
     }
   }
-} 
+
+  async addProductsToCategory({
+    productIds,
+    categoryId,
+    staged = false,
+  }: {
+    productIds: string[];
+    categoryId: string;
+    staged?: boolean;
+  }): Promise<any[]> {
+    const responses: any[] = [];
+
+    for (const productId of productIds) {
+
+      try {
+        // Get current product version
+        const product = await this.apiRoot
+          .withProjectKey({ projectKey: this.projectKey })
+          .products()
+          .withId({ ID: productId })
+          .get()
+          .execute();
+
+        const version = product.body.version;
+
+        const updateResponse = await this.apiRoot
+          .withProjectKey({ projectKey: this.projectKey })
+          .products()
+          .withId({ ID: productId })
+          .post({
+            body: {
+              version,
+              actions: [
+                {
+                  action: 'addToCategory',
+                  category: {
+                    id: categoryId,
+                    typeId: 'category'
+                  },
+                  staged,
+                },
+              ],
+            },
+          })
+          .execute();
+
+        responses.push(updateResponse);
+      } catch (error) {
+        console.error('Error adding product to category:', error);
+        throw error;
+      }
+    }
+
+    return responses;
+  } 
+}
