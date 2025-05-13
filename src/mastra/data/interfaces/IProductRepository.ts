@@ -56,4 +56,5 @@ export interface IProductRepository {
   getCategories(): Promise<Category[]>;
   createCategory(category: Category): Promise<Category>;
   addProductToCategory(categoryId: string, productId: string): Promise<void>;
+  getRecentlyOutOfStockProducts(): Promise<any[]>;
 } 

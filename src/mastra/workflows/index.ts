@@ -16,7 +16,8 @@ export function ensureLocalizedCategoryInput(input: any) {
   };
 }
 
-import { searchProductsTool, getStoreInfoTool, getCategoriesTool, getProductsByCategoryTool, createCategoryTool, addProductToCategoryTool } from '../tools';
+import { searchProductsTool, getStoreInfoTool, getCategoriesTool, getProductsByCategoryTool, createCategoryTool, addProductToCategoryTool, getRecentlyOutOfStockProductsTool } from '../tools';
+
 
 export const merchantAssistant = new Agent({
     name: 'Merchant Assistant',
@@ -33,7 +34,8 @@ export const merchantAssistant = new Agent({
       - Use the getProductsByCategoryTool to help users find products based on their queries.
       - Use the createCategoryTool to help users create new categories.
       - Use the addProductToCategoryTool to help users add products to categories. Always validate your work by using the response from querying the getProductsByCategoryTool.  If multiple products need to be added, add them one at a time.  
-      
+      - Use the getRecentlyOutOfStockProductsTool to help users find products that have been out of stock recently.
+
       Store Information
       Use the getStoreInfoTool to answer questions about:
       - Store hours
@@ -79,7 +81,8 @@ export const merchantAssistant = new Agent({
         getCategoriesTool,
         getProductsByCategoryTool,
         createCategoryTool,
-        addProductToCategoryTool
+        addProductToCategoryTool,
+        getRecentlyOutOfStockProductsTool
     },
     memory: new Memory({
         options: {

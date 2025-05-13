@@ -394,5 +394,68 @@ export class CommerceToolsRepository implements IProductRepository {
     }
 
     return responses;
-  } 
+  }
+
+  async getRecentlyOutOfStockProducts(): Promise<any[]> {
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const isoYesterday = yesterday.toISOString();
+
+    const results: any[] = [];
+
+    let offset = 0;
+    const limit = 100;
+
+    const inventoryResponse = await this.apiRoot
+      .withProjectKey({ projectKey: this.projectKey })
+      .inventory()
+      .get({
+        queryArgs: {
+          limit,
+          offset,
+          where: `availableQuantity=0 AND lastModifiedAt > "${isoYesterday}"`,
+        },
+      })
+      .execute();
+
+    const entries = inventoryResponse.body.results;
+
+    for (const entry of entries) {
+      const sku = entry.sku;
+
+      // Find product with matching variant SKU
+      const productResponse = await this.apiRoot
+        .withProjectKey({ projectKey: this.projectKey })
+        .productProjections()
+        .search()
+        .get({
+          queryArgs: {
+            [`filter.query`]: [`variants.sku:"${sku}"`],
+            limit: 1,
+          },
+        })
+        .execute();
+
+      const product = productResponse.body.results[0];
+
+      console.log(`Product found for SKU ${sku}:`, product);
+
+      if (product) {
+        const name = product.name?.['en-US'] ?? '[no name]';
+        const slug = product.slug?.['en-US'] ?? '[no slug]';
+
+        results.push({
+          sku,
+          productId: product.id,
+          productName: name,
+          slug,
+        });
+      }
+
+      if (inventoryResponse.body.count < limit) break;
+      offset += limit;
+    }
+
+    return results;
+  }
 }

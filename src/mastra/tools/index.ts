@@ -168,12 +168,6 @@ export const getCategoriesTool = createTool({
   },
 });
 
-// inputSchema: z.object({
-//   name: z.record(z.string()), // { en: 'Hats' }
-//   slug: z.record(z.string()), // { en: 'hats' }
-//   parent: z.object({ id: z.string().optional() }).optional(),
-//   orderHint: z.string().optional(),
-// }),
 export const createCategoryTool = createTool({
   id: 'create-category',
   description: 'Create a new product category',
@@ -235,6 +229,26 @@ export const addProductToCategoryTool = createTool({
         categoryId: context.categoryId,
         productId: context.productId
       };
+    } catch (error) {
+      logError(error as Error);
+      throw error;
+    }
+  },
+});
+
+export const getRecentlyOutOfStockProductsTool = createTool({
+  id: 'get-recently-out-of-stock-products',
+  description: 'Get products that have been out of stock recently',
+  outputSchema: z.object({
+    products: z.array(z.string())
+  }),
+  execute: async () => {
+    try {
+      logInfo('Fetching recently out of stock products');
+      const { productRepository } = configureServices();
+      const products = await productRepository.getRecentlyOutOfStockProducts();
+      logInfo('Products retrieved', { count: products.length });
+      return { products };
     } catch (error) {
       logError(error as Error);
       throw error;
