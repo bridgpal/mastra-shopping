@@ -29,6 +29,9 @@ export const mcp = new MCPClient({
         `--apiUrl=${API_URL}`,
         `--tools=products.read,products.update,product-search.read,category.read,category.create,category.update`,
       ],
+      env: {
+        PUPPETEER_SKIP_DOWNLOAD: "true",
+      },
     },
   },  
 });
